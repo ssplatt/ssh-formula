@@ -1,0 +1,167 @@
+{%- from "ssh/map.jinja" import ssh with context -%}
+# What ports, IPs and protocols we listen for
+{% if ssh.daemon.port is string or ssh.daemon.port is number -%}
+Port {{ ssh.daemon.port }}
+{% else -%}
+{% for port in ssh.daemon.port -%}
+Port {{ port }}
+{% endfor -%}
+{%- endif %}
+
+# Use these options to restrict which interfaces/protocols sshd will bind to
+{% if ssh.daemon.listenaddress is string -%}
+ListenAddress {{ ssh.daemon.listenaddress }}
+{% else -%}
+{% for address in ssh.daemon.listenaddress %}
+ListenAddress {{ address }}
+{% endfor -%}
+{%- endif %}
+
+Protocol {{ ssh.daemon.protocol }}
+# HostKeys for protocol version 2
+{% if ssh.daemon.hostkey is string -%}
+HostKey {{ ssh.daemon.hostkey }}
+{% else -%}
+{% for key in ssh.daemon.hostkey -%}
+HostKey {{ key }}
+{% endfor -%}
+{%- endif %}
+#Privilege Separation is turned on for security
+UsePrivilegeSeparation yes
+
+# Lifetime and size of ephemeral version 1 server key
+KeyRegenerationInterval 3600
+ServerKeyBits {{ ssh.daemon.serverkeybits }}
+
+# Logging
+SyslogFacility AUTH
+LogLevel {{ ssh.daemon.loglevel }}
+
+# Authentication:
+{% if ssh.daemon.logingracetime is defined -%}
+LoginGraceTime {{ ssh.daemon.logingracetime |int }}
+{% else -%}
+LoginGraceTime 120
+{%- endif %}
+PermitRootLogin {{ ssh.daemon.permitrootlogin }}
+StrictModes yes
+
+RSAAuthentication {{ ssh.daemon.rsaauthentication }}
+PubkeyAuthentication yes
+{% if ssh.daemon.authorizedkeysfile is defined -%}
+{% if ssh.daemon.authorizedkeysfile is string -%}
+AuthorizedKeysFile {{ ssh.daemon.authorizedkeysfile }}
+{% else -%}
+{% for keyfile in ssh.daemon.authorizedkeysfile -%}
+AuthorizedKeysFile {{ keyfile }}
+{% endfor -%}
+{%- endif %}
+{% else -%}
+#AuthorizedKeysFile  %h/.ssh/authorized_keys
+{%- endif %}
+
+# Don't read the user's ~/.rhosts and ~/.shosts files
+IgnoreRhosts yes
+# For this to work you will also need host keys in /etc/ssh_known_hosts
+RhostsRSAAuthentication no
+# similar for protocol version 2
+HostbasedAuthentication no
+# Uncomment if you don't trust ~/.ssh/known_hosts for RhostsRSAAuthentication
+IgnoreUserKnownHosts {{ ssh.daemon.ignoreuserknownhosts }}
+
+# To enable empty passwords, change to yes (NOT RECOMMENDED)
+PermitEmptyPasswords no
+
+# Change to yes to enable challenge-response passwords (beware issues with
+# some PAM modules and threads)
+ChallengeResponseAuthentication {{ ssh.daemon.challengeresponseauthentication }}
+
+# Change to no to disable tunnelled clear text passwords
+PasswordAuthentication {{ ssh.daemon.passwordauthentication }}
+
+# Kerberos options
+#KerberosAuthentication no
+#KerberosGetAFSToken no
+#KerberosOrLocalPasswd yes
+#KerberosTicketCleanup yes
+
+# GSSAPI options
+#GSSAPICleanupCredentials yes
+
+X11Forwarding {{ ssh.daemon.x11forwarding }}
+X11DisplayOffset 10
+PrintMotd no
+PrintLastLog {{ ssh.daemon.printlastlog }}
+TCPKeepAlive {{ ssh.daemon.tcpkeepalive }}
+#UseLogin no
+
+#MaxStartups 10:30:60
+#Banner /etc/issue.net
+
+# Allow client to pass locale environment variables
+AcceptEnv LANG LC_*
+
+{% if ssh.daemon.permituserenvironment is defined -%}
+PermitUserEnvironment {{ ssh.daemon.permituserenvironment }}
+{% endif -%}
+
+{% if ssh.sftp_enabled -%}
+Subsystem sftp /usr/lib/openssh/sftp-server
+{% else -%}
+#Subsystem sftp /usr/lib/openssh/sftp-server
+{%- endif %}
+
+# Set this to 'yes' to enable PAM authentication, account processing,
+# and session processing. If this is enabled, PAM authentication will
+# be allowed through the ChallengeResponseAuthentication and
+# PasswordAuthentication.  Depending on your PAM configuration,
+# PAM authentication via ChallengeResponseAuthentication may bypass
+# the setting of "PermitRootLogin without-password".
+# If you just want the PAM account and session checks to run without
+# PAM authentication, then enable this but set PasswordAuthentication
+# and ChallengeResponseAuthentication to 'no'.
+UsePAM {{ ssh.daemon.usepam }}
+UseDNS {{ ssh.daemon.usedns }}
+GSSAPIAuthentication {{ ssh.daemon.gssapiauthentication }}
+
+AllowTcpForwarding {{ ssh.daemon.allowtcpforwarding }}
+
+{% if ssh.daemon.denyusers is defined -%}
+DenyUsers {{ ssh.daemon.denyusers }}
+{% endif -%}
+{% if ssh.daemon.allowusers is defined -%}
+AllowUsers {{ ssh.daemon.allowusers }}
+{% endif -%}
+{% if ssh.daemon.denygroups is defined -%}
+DenyGroups {{ ssh.daemon.denygroups }}
+{% endif -%}
+{% if ssh.daemon.allowgroups is defined -%}
+AllowGroups {{ ssh.daemon.allowgroups }}
+{% endif -%}
+{% if ssh.supportdsakeys -%}
+PubkeyAcceptedKeyTypes +ssh-dss
+{% endif -%}
+
+{% if ssh.daemon.match is defined -%}
+
+{% if ssh.daemon.match.group is defined -%}
+{% for group,stanzas in ssh.daemon.match.group.iteritems() %}
+
+Match Group {{ group }}
+{%- for stanza, setting in stanzas.iteritems() %}
+  {{ stanza }} {{ setting }}
+{%- endfor -%}
+{% endfor -%}
+{% endif -%}
+
+{% if ssh.daemon.match.user is defined -%}
+{% for user,stanzas in ssh.daemon.match.user.iteritems() %}
+
+Match User {{ user }}
+{%- for stanza, setting in stanzas.iteritems() %}
+  {{ stanza }} {{ setting }}
+{%- endfor -%}
+{% endfor -%}
+{% endif -%}
+
+{% endif -%}

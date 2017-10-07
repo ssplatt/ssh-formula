@@ -1,0 +1,41 @@
+# -*- coding: utf-8 -*-
+# vim: ft=yaml
+---
+driver:
+  name: linode
+
+provisioner:
+  name: salt_solo
+  is_file_root: true
+  salt_copy_filter:
+    - .kitchen
+    - .git
+  state_top:
+    base:
+      "*":
+        - test.mockup
+        - ssh
+  pillars:
+    top.sls:
+      base:
+        "*":
+          - ssh
+
+platforms:
+  - name: debian_jessie
+  - name: debian_stretch
+    driver:
+      image: Debian 9
+
+suites:
+  - name: default
+    provisioner:
+      pillars:
+        ssh.sls:
+          ssh:
+            enabled: true
+
+  - name: custom
+    provisioner:
+      pillars-from-files:
+        ssh.sls: pillar-custom.sls
